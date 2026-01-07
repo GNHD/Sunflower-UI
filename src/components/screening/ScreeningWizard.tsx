@@ -14,9 +14,16 @@ export function ScreeningWizard() {
   const [babyName, setBabyName] = useState("");
   const [babyId, setBabyId] = useState("");
   const [selectedSymptoms, setSelectedSymptoms] = useState<Symptom[]>([]);
+  const [noneSelectedParts, setNoneSelectedParts] = useState<Set<string>>(new Set());
 
-  const handleSymptomToggle = (symptom: Symptom, checked: boolean) => {
+  const handleSymptomToggle = (bodyPartName: string, symptom: Symptom, checked: boolean) => {
+    // If selecting a symptom, uncheck "none of the above" for this body part
     if (checked) {
+      setNoneSelectedParts((prev) => {
+        const next = new Set(prev);
+        next.delete(bodyPartName);
+        return next;
+      });
       setSelectedSymptoms((prev) => [...prev, symptom]);
     } else {
       setSelectedSymptoms((prev) =>
@@ -25,11 +32,31 @@ export function ScreeningWizard() {
     }
   };
 
+  const handleNoneToggle = (bodyPartName: string, checked: boolean) => {
+    if (checked) {
+      // Clear all symptoms for this body part when "none" is selected
+      const bodyPart = symptomsData.find((bp) => bp.bodyPart === bodyPartName);
+      if (bodyPart) {
+        setSelectedSymptoms((prev) =>
+          prev.filter((s) => !bodyPart.symptoms.some((bs) => bs.symptom === s.symptom))
+        );
+      }
+      setNoneSelectedParts((prev) => new Set(prev).add(bodyPartName));
+    } else {
+      setNoneSelectedParts((prev) => {
+        const next = new Set(prev);
+        next.delete(bodyPartName);
+        return next;
+      });
+    }
+  };
+
   const handleReset = () => {
     setStep("info");
     setBabyName("");
     setBabyId("");
     setSelectedSymptoms([]);
+    setNoneSelectedParts(new Set());
   };
 
   const priorityCount = selectedSymptoms.filter((s) => s.priority).length;
@@ -133,7 +160,9 @@ export function ScreeningWizard() {
                   key={bodyPart.bodyPart}
                   bodyPart={bodyPart}
                   selectedSymptoms={selectedSymptoms}
-                  onSymptomToggle={handleSymptomToggle}
+                  onSymptomToggle={(symptom, checked) => handleSymptomToggle(bodyPart.bodyPart, symptom, checked)}
+                  noneSelected={noneSelectedParts.has(bodyPart.bodyPart)}
+                  onNoneToggle={(checked) => handleNoneToggle(bodyPart.bodyPart, checked)}
                   index={index}
                 />
               ))}

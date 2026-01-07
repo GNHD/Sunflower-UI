@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp, Activity, Brain, Smile, Eye, Ear, Mic, Circle, MinusCircle, User, Droplets, Hand, Dna, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
 import { SymptomCheckbox } from "./SymptomCheckbox";
 import type { BodyPartSymptoms, Symptom } from "@/data/symptoms";
 
@@ -23,6 +24,8 @@ interface BodyPartCardProps {
   bodyPart: BodyPartSymptoms;
   selectedSymptoms: Symptom[];
   onSymptomToggle: (symptom: Symptom, checked: boolean) => void;
+  noneSelected: boolean;
+  onNoneToggle: (checked: boolean) => void;
   index: number;
 }
 
@@ -30,6 +33,8 @@ export function BodyPartCard({
   bodyPart,
   selectedSymptoms,
   onSymptomToggle,
+  noneSelected,
+  onNoneToggle,
   index,
 }: BodyPartCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -105,6 +110,27 @@ export function BodyPartCard({
         {isExpanded && (
           <div className="px-4 pb-4 space-y-2 animate-fade-in">
             <div className="h-px bg-border mb-3" />
+            
+            {/* None of the above option */}
+            <div
+              className={cn(
+                "flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 cursor-pointer",
+                noneSelected
+                  ? "bg-primary/10 border-primary"
+                  : "bg-card border-border hover:border-primary/50 hover:bg-secondary/50"
+              )}
+              onClick={() => onNoneToggle(!noneSelected)}
+            >
+              <Checkbox
+                checked={noneSelected}
+                onCheckedChange={onNoneToggle}
+                className="mt-0.5"
+              />
+              <span className="text-foreground font-medium">None of the above</span>
+            </div>
+            
+            <div className="h-px bg-border my-3" />
+            
             {bodyPart.symptoms.map((symptom) => (
               <SymptomCheckbox
                 key={symptom.symptom}

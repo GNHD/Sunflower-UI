@@ -45,9 +45,6 @@ export function SymptomCheckbox({
             </span>
           )}
         </Label>
-        <p className="text-sm text-muted-foreground mt-1">
-          HPO: {symptom.hpo}
-        </p>
       </div>
     </div>
   );
