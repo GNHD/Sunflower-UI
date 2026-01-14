@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, ArrowRight, ClipboardList } from "lucide-react";
+import { ArrowLeft, ArrowRight, ClipboardList, Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
 import { BabyInfoForm } from "./BabyInfoForm";
 import { BodyPartCard } from "./BodyPartCard";
 import { ResultSummary } from "./ResultSummary";
@@ -15,6 +16,7 @@ export function ScreeningWizard() {
   const [babyId, setBabyId] = useState("");
   const [selectedSymptoms, setSelectedSymptoms] = useState<Symptom[]>([]);
   const [noneSelectedParts, setNoneSelectedParts] = useState<Set<string>>(new Set());
+  const { theme, setTheme } = useTheme();
 
   const handleSymptomToggle = (bodyPartName: string, symptom: Symptom, checked: boolean) => {
     // If selecting a symptom, uncheck "none of the above" for this body part
@@ -99,6 +101,17 @@ export function ScreeningWizard() {
                 )}
               </div>
             )}
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="shrink-0"
+            >
+              <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              <span className="sr-only">Toggle theme</span>
+            </Button>
           </div>
         </div>
       </header>
