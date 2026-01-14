@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, ArrowRight, ClipboardList, Moon, Sun } from "lucide-react";
+import { ArrowLeft, ArrowRight, ClipboardList, Moon, Sun, AlertCircle } from "lucide-react";
 import { useTheme } from "next-themes";
+import { toast } from "sonner";
 import { BabyInfoForm } from "./BabyInfoForm";
 import { BodyPartCard } from "./BodyPartCard";
 import { ResultSummary } from "./ResultSummary";
@@ -61,13 +62,26 @@ export function ScreeningWizard() {
     setNoneSelectedParts(new Set());
   };
 
-  const priorityCount = selectedSymptoms.filter((s) => s.priority).length;
   const totalBodyParts = symptomsData.length;
-  const checkedBodyParts = symptomsData.filter((bp) =>
+  
+  // Count body parts that have been reviewed (either has symptoms selected OR "none" selected)
+  const reviewedBodyParts = symptomsData.filter((bp) =>
+    noneSelectedParts.has(bp.bodyPart) ||
     selectedSymptoms.some((s) =>
       bp.symptoms.some((bs) => bs.symptom === s.symptom)
     )
   ).length;
+
+  const allBodyPartsReviewed = reviewedBodyParts === totalBodyParts;
+
+  const getUnreviewedBodyParts = () => {
+    return symptomsData.filter((bp) =>
+      !noneSelectedParts.has(bp.bodyPart) &&
+      !selectedSymptoms.some((s) =>
+        bp.symptoms.some((bs) => bs.symptom === s.symptom)
+      )
+    ).map(bp => bp.bodyPart);
+  };
 
   return (
     <div className="min-h-screen gradient-hero">
@@ -92,13 +106,8 @@ export function ScreeningWizard() {
             {step === "screening" && (
               <div className="hidden sm:flex items-center gap-4 text-sm">
                 <span className="text-muted-foreground">
-                  {selectedSymptoms.length} symptoms selected
+                  {reviewedBodyParts}/{totalBodyParts} sections reviewed
                 </span>
-                {priorityCount > 0 && (
-                  <span className="px-2 py-1 rounded-full bg-priority/15 text-priority font-medium">
-                    {priorityCount} priority
-                  </span>
-                )}
               </div>
             )}
 
@@ -130,14 +139,14 @@ export function ScreeningWizard() {
                 value={
                   step === "results"
                     ? 100
-                    : (checkedBodyParts / totalBodyParts) * 100
+                    : (reviewedBodyParts / totalBodyParts) * 100
                 }
                 className="h-2"
               />
               <span className="text-sm font-medium text-foreground whitespace-nowrap">
                 {step === "results"
                   ? "Complete"
-                  : `${checkedBodyParts}/${totalBodyParts}`}
+                  : `${reviewedBodyParts}/${totalBodyParts}`}
               </span>
             </div>
           </div>
@@ -191,8 +200,19 @@ export function ScreeningWizard() {
                 Back
               </Button>
               <Button
-                onClick={() => setStep("results")}
+                onClick={() => {
+                  if (!allBodyPartsReviewed) {
+                    const unreviewedParts = getUnreviewedBodyParts();
+                    toast.error("Please review all body parts", {
+                      description: `Remaining sections: ${unreviewedParts.slice(0, 3).join(", ")}${unreviewedParts.length > 3 ? ` and ${unreviewedParts.length - 3} more` : ""}`,
+                      icon: <AlertCircle className="w-4 h-4" />,
+                    });
+                    return;
+                  }
+                  setStep("results");
+                }}
                 className="flex-1 h-12 gradient-primary hover:opacity-90 transition-opacity"
+                disabled={!allBodyPartsReviewed}
               >
                 Complete Screening
                 <ArrowRight className="w-4 h-4 ml-2" />

@@ -111,7 +111,18 @@ export function BodyPartCard({
           <div className="px-4 pb-4 space-y-2 animate-fade-in">
             <div className="h-px bg-border mb-3" />
             
-            {/* None of the above option */}
+            {bodyPart.symptoms.map((symptom) => (
+              <SymptomCheckbox
+                key={symptom.symptom}
+                symptom={symptom}
+                checked={selectedSymptoms.some((s) => s.symptom === symptom.symptom)}
+                onCheckedChange={(checked) => onSymptomToggle(symptom, checked)}
+              />
+            ))}
+            
+            <div className="h-px bg-border my-3" />
+            
+            {/* None of the above option - at the end */}
             <div
               className={cn(
                 "flex items-center gap-3 p-3 rounded-lg border transition-all duration-200 cursor-pointer",
@@ -126,19 +137,8 @@ export function BodyPartCard({
                 onCheckedChange={onNoneToggle}
                 className="mt-0.5"
               />
-              <span className="text-foreground font-medium">None of the above</span>
+              <span className="text-sm font-medium text-foreground">None of the above</span>
             </div>
-            
-            <div className="h-px bg-border my-3" />
-            
-            {bodyPart.symptoms.map((symptom) => (
-              <SymptomCheckbox
-                key={symptom.symptom}
-                symptom={symptom}
-                checked={selectedSymptoms.some((s) => s.symptom === symptom.symptom)}
-                onCheckedChange={(checked) => onSymptomToggle(symptom, checked)}
-              />
-            ))}
           </div>
         )}
       </div>
