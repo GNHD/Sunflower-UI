@@ -12,6 +12,7 @@ import {
   Stethoscope,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { jsPDF } from "jspdf";
 import type { Symptom } from "@/data/symptoms";
 
 interface ResultSummaryProps {
@@ -30,6 +31,8 @@ export function ResultSummary({
   const [useHpo, setUseHpo] = useState(false);
 
   const hasPriority = selectedSymptoms.some((s) => s.priority);
+  const prioritySymptoms = selectedSymptoms.filter((s) => s.priority);
+  const regularSymptoms = selectedSymptoms.filter((s) => !s.priority);
   const urgent = hasPriority;
   const recommended = hasPriority || selectedSymptoms.length >= 3;
 
@@ -40,37 +43,111 @@ export function ResultSummary({
     : "Routine monitoring advised. No immediate screening required.";
 
   const handleDownloadPdf = () => {
+    const doc = new jsPDF();
     const now = new Date().toLocaleString();
-    const symptomsText = selectedSymptoms
-      .map((s) => (useHpo ? s.hpo : s.symptom))
-      .join("\n  • ");
-
-    const content = `
-NEWBORN SCREENING SUMMARY
-========================
-
-Baby Name: ${babyName}
-Patient ID: ${babyId}
-Date & Time: ${now}
-
-SYMPTOMS OBSERVED:
-${selectedSymptoms.length > 0 ? `  • ${symptomsText}` : "  No symptoms selected."}
-
-RECOMMENDATION:
-${recommendation}
-
-${urgent ? "⚠ URGENT REFERRAL REQUIRED" : ""}
-    `.trim();
-
-    const blob = new Blob([content], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${babyName.replace(/\s+/g, "_")}_newborn_screening.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    
+    // Title
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("NEWBORN SCREENING SUMMARY", 105, 20, { align: "center" });
+    
+    // Line separator
+    doc.setLineWidth(0.5);
+    doc.line(20, 28, 190, 28);
+    
+    // Patient Information
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("Patient Information", 20, 40);
+    
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Baby Name: ${babyName}`, 20, 50);
+    doc.text(`Patient ID: ${babyId}`, 20, 58);
+    doc.text(`Date & Time: ${now}`, 20, 66);
+    
+    let yPos = 80;
+    
+    // Priority Symptoms (if any)
+    if (prioritySymptoms.length > 0) {
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(220, 38, 38); // Red color
+      doc.text("⚠ PRIORITY SYMPTOMS", 20, yPos);
+      yPos += 10;
+      
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+      prioritySymptoms.forEach((symptom) => {
+        const text = useHpo ? symptom.hpo : symptom.symptom;
+        doc.text(`• ${text}`, 25, yPos);
+        yPos += 8;
+      });
+      yPos += 5;
+    }
+    
+    // Regular Symptoms
+    doc.setTextColor(0, 0, 0); // Reset to black
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("Symptoms Observed", 20, yPos);
+    yPos += 10;
+    
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    if (regularSymptoms.length > 0) {
+      regularSymptoms.forEach((symptom) => {
+        const text = useHpo ? symptom.hpo : symptom.symptom;
+        doc.text(`• ${text}`, 25, yPos);
+        yPos += 8;
+        if (yPos > 270) {
+          doc.addPage();
+          yPos = 20;
+        }
+      });
+    } else if (selectedSymptoms.length === 0) {
+      doc.text("No symptoms selected.", 25, yPos);
+      yPos += 8;
+    }
+    
+    yPos += 10;
+    
+    // Recommendation
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    if (urgent) {
+      doc.setTextColor(220, 38, 38);
+    } else if (recommended) {
+      doc.setTextColor(245, 158, 11);
+    } else {
+      doc.setTextColor(34, 197, 94);
+    }
+    doc.text("Recommendation", 20, yPos);
+    yPos += 10;
+    
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 0, 0);
+    
+    // Word wrap recommendation text
+    const splitRecommendation = doc.splitTextToSize(recommendation, 170);
+    doc.text(splitRecommendation, 20, yPos);
+    yPos += splitRecommendation.length * 7 + 10;
+    
+    if (urgent) {
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(220, 38, 38);
+      doc.text("⚠ URGENT REFERRAL REQUIRED", 20, yPos);
+    }
+    
+    // Footer
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(128, 128, 128);
+    doc.text("For clinical use only. Always consult with qualified medical professionals.", 105, 285, { align: "center" });
+    
+    doc.save(`${babyName.replace(/\s+/g, "_")}_newborn_screening.pdf`);
   };
 
   return (
